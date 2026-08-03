@@ -550,13 +550,13 @@
     }
 
     // ================= LOGIN & ADMIN LOGIC =================
-    let dashboardPW = localStorage.getItem('iconix_dashboard_pw') || '0000'; // 최초 기본 패스워드 설정
+    let dashboardPW = localStorage.getItem('iconix_dashboard_pw') || '0000'; 
 
     function checkDashboardPW() {
         const input = document.getElementById('dashboard-pw-input').value;
         if (input === dashboardPW) {
             document.getElementById('login-overlay').style.display = 'none';
-            document.body.style.overflow = ''; // 접속 성공 시 스크롤 활성화
+            document.body.style.overflow = 'auto'; // V33: 스크롤 완벽 복구
         } else {
             alert('패스워드가 일치하지 않습니다.');
         }
