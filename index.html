@@ -44,6 +44,7 @@
         color: var(--text-primary);
         font-family: 'SamsungOne', 'Pretendard', -apple-system, sans-serif;
         line-height: 1.5;
+        overflow: hidden; /* 최초 접속 시 스크롤 방지 */
     }
     
     .main-container {
@@ -149,9 +150,83 @@
     .detail-metric { display: flex; justify-content: space-between; align-items: center; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
     .detail-metric:first-of-type { border-top: none; padding-top: 0; }
     .detail-val { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+    /* Login Screen Styles */
+    #login-overlay {
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+        background: var(--bg-base); z-index: 99999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    .login-container {
+        display: flex; flex-direction: column; align-items: center;
+        width: 100%; max-width: 400px; padding: 20px;
+    }
+    .login-title { font-size: 32px; font-weight: 800; margin-bottom: 4px; letter-spacing: -0.02em; }
+    .login-subtitle { color: var(--color-primary-500); font-size: 20px; margin-bottom: 40px; font-weight: 700; letter-spacing: 2px; }
+    .login-input-full {
+        background: rgba(255,255,255,0.08); border: 1px solid var(--border-default);
+        color: #fff; font-size: 14px; outline: none; transition: all 0.2s ease;
+        padding: 14px 16px; border-radius: var(--radius-md); width: 320px; text-align: center;
+    }
+    .login-input-full:focus { border-color: var(--color-primary-400); background: rgba(255,255,255,0.12); }
+    .login-input-full::placeholder { color: var(--text-tertiary); font-size: 13px; }
+    
+    .btn-login-submit {
+        background: var(--color-primary-500); color: #fff; font-weight: bold; border: none;
+        padding: 14px 16px; border-radius: var(--radius-md); width: 320px; cursor: pointer; font-size: 14px;
+        transition: background 0.2s ease; margin-top: 12px;
+    }
+    .btn-login-submit:hover { background: var(--color-primary-400); }
+    
+    .admin-toggle { color: var(--text-tertiary); font-size: 13px; cursor: pointer; padding: 8px 16px; margin-top: 40px; font-weight: 600; border: 1px solid transparent; border-radius: 4px; }
+    .admin-toggle:hover { color: #fff; background: rgba(255,255,255,0.05); }
+
+    .admin-panel {
+        display: none; flex-direction: column; gap: 10px; margin-top: 16px; 
+        background: var(--bg-elevated); padding: 24px; border-radius: var(--radius-lg); 
+        border: 1px solid var(--border-default); width: 320px;
+    }
+    .admin-panel-input {
+        background: rgba(0,0,0,0.3); border: 1px solid var(--border-default);
+        color: #fff; font-size: 13px; outline: none; padding: 10px 12px; border-radius: 6px; width: 100%;
+    }
+    .admin-panel-input:focus { border-color: var(--text-secondary); }
+    .btn-admin { background: #333; border: 1px solid var(--border-default); color: #fff; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn-admin:hover { background: #444; }
+    .btn-save { background: var(--color-primary-400); border: none; color: #fff; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+    .btn-save:hover { background: var(--color-primary-300); }
     </style>
 </head>
 <body>
+
+<!-- Login & Admin Overlay -->
+<div id="login-overlay">
+    <div class="login-container">
+        <div class="login-title">아이코닉스 매출 대시보드</div>
+        <div class="login-subtitle">ICONIX</div>
+        
+        <div style="display: flex; flex-direction: column; align-items: center;">
+            <input type="password" id="dashboard-pw-input" class="login-input-full" placeholder="PW : (대소문자, 숫자, 특수문자 사용 가능)" onkeypress="if(event.key==='Enter') checkDashboardPW()">
+            <button class="btn-login-submit" onclick="checkDashboardPW()">대시보드 접속</button>
+        </div>
+
+        <div class="admin-toggle" onclick="toggleAdminLogin()">admin</div>
+
+        <div id="admin-login-box" class="admin-panel">
+            <h3 style="text-align: center; margin-bottom: 8px;">Admin Login</h3>
+            <input type="text" id="admin-id-input" class="admin-panel-input" placeholder="ID">
+            <input type="password" id="admin-pw-input" class="admin-panel-input" placeholder="PW" onkeypress="if(event.key==='Enter') checkAdminLogin()">
+            <button class="btn-admin" onclick="checkAdminLogin()">로그인</button>
+        </div>
+
+        <div id="admin-settings-box" class="admin-panel" style="border-color: var(--color-primary-500); background: rgba(20,40,160,0.05);">
+            <h3 style="text-align: center; color: var(--color-primary-400); margin-bottom: 4px;">대시보드 PW 설정</h3>
+            <div style="font-size: 13px; color: var(--text-secondary); text-align: center; margin-bottom: 12px;">현재 PW: <strong id="current-dashboard-pw" style="color: #fff; letter-spacing: 1px;"></strong></div>
+            <input type="text" id="new-dashboard-pw-input" class="admin-panel-input" placeholder="새로운 패스워드 입력 (기재칸)" onkeypress="if(event.key==='Enter') changeDashboardPW()">
+            <button class="btn-save" onclick="changeDashboardPW()">설정완료</button>
+        </div>
+    </div>
+</div>
 
 <!-- 1. Sticky Global Header & Filters -->
 <div class="header-wrapper">
@@ -473,6 +548,55 @@
         ipColorIndex++;
         return ipColorCache[ip];
     }
+
+    // ================= LOGIN & ADMIN LOGIC =================
+    let dashboardPW = localStorage.getItem('iconix_dashboard_pw') || '0000'; // 최초 기본 패스워드 설정
+
+    function checkDashboardPW() {
+        const input = document.getElementById('dashboard-pw-input').value;
+        if (input === dashboardPW) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.body.style.overflow = ''; // 접속 성공 시 스크롤 활성화
+        } else {
+            alert('패스워드가 일치하지 않습니다.');
+        }
+    }
+
+    function toggleAdminLogin() {
+        const box = document.getElementById('admin-login-box');
+        const settingsBox = document.getElementById('admin-settings-box');
+        if(settingsBox.style.display === 'flex') {
+            settingsBox.style.display = 'none';
+        } else {
+            box.style.display = box.style.display === 'none' ? 'flex' : 'none';
+        }
+    }
+
+    function checkAdminLogin() {
+        const id = document.getElementById('admin-id-input').value;
+        const pw = document.getElementById('admin-pw-input').value;
+        if (id === 'd7733770' && pw === '2593') {
+            document.getElementById('admin-login-box').style.display = 'none';
+            document.getElementById('admin-settings-box').style.display = 'flex';
+            document.getElementById('current-dashboard-pw').innerText = dashboardPW;
+        } else {
+            alert('Admin 계정 정보가 일치하지 않습니다.');
+        }
+    }
+
+    function changeDashboardPW() {
+        const newPW = document.getElementById('new-dashboard-pw-input').value;
+        if (newPW.trim() === '') {
+            alert('유효한 패스워드를 입력하세요.');
+            return;
+        }
+        dashboardPW = newPW;
+        localStorage.setItem('iconix_dashboard_pw', dashboardPW);
+        document.getElementById('current-dashboard-pw').innerText = dashboardPW;
+        alert('대시보드 접속 패스워드가 변경되었습니다.\n새 패스워드: ' + dashboardPW);
+        document.getElementById('new-dashboard-pw-input').value = '';
+    }
+    // =======================================================
 
     document.addEventListener('click', (e) => {
         if(!e.target.closest('.multi-select')) {
@@ -882,7 +1006,6 @@
         });
     }
 
-    // V31 업데이트: 테이블 컬럼 클릭 시 내림차순 정렬 로직 추가 및 17px 사이즈 조정
     function setIP6Code(code) {
         ip6SelectedCode = code;
         document.querySelectorAll('button[data-ip6]').forEach(btn => {
@@ -934,7 +1057,6 @@
             } 
         });
 
-        // 정렬 적용
         let sortedIPs = [...BASE_TARGET_IPS];
         if (ip6Sort.period !== null && last6Months.includes(ip6Sort.period)) {
             sortedIPs.sort((a, b) => {
